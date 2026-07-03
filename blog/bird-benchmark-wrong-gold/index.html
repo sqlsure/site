@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>The benchmark grading every text-to-SQL model has wrong answers in its key — sqlsure</title>
-<meta name="description" content="We ran a deterministic semantic check over 2,568 gold queries from Spider and BIRD. Zero false alarms, one schema defect filed upstream, and one BIRD gold answer proven wrong by 8× — by executing the benchmark's own database.">
+<meta name="description" content="We audited 2,568 gold queries from Spider and BIRD with a deterministic semantic check: zero false alarms, one gold answer proven wrong by 8×. But the real story is bigger — execution accuracy is not ground truth, and evaluation itself is the bottleneck.">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✅</text></svg>">
 <link rel="canonical" href="https://sqlsure.ai/blog/bird-benchmark-wrong-gold/">
 <style>
@@ -18,7 +18,8 @@ nav .brand{font-weight:750;font-size:1.1rem}
 nav a{color:var(--muted);text-decoration:none;font-size:.95rem}
 nav .brand a{color:var(--fg)}
 h1{font-size:1.9rem;line-height:1.2;letter-spacing:-.02em;margin:2rem 0 .4rem;font-weight:800}
-h2{font-size:1.25rem;margin:2.4rem 0 .6rem}
+h2{font-size:1.3rem;margin:2.6rem 0 .6rem}
+h3{font-size:1.05rem;margin:1.6rem 0 .4rem;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;font-size:.85rem}
 p{margin:.9rem 0}
 .meta{color:var(--muted);font-size:.9rem;margin-bottom:2rem}
 code,pre{font:.86em/1.55 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
@@ -31,6 +32,15 @@ a{color:var(--accent2)}
 ul,ol{padding-left:1.3rem} li{margin:.4rem 0}
 .bad{color:var(--bad);font-weight:600}.good{color:var(--good);font-weight:600}
 footer{border-top:1px solid var(--border);margin-top:4rem;padding-top:1.4rem;color:var(--muted);font-size:.9rem}
+.diagram{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin:1.5rem 0}
+@media(max-width:640px){.diagram{grid-template-columns:1fr}}
+.diagram>div{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:1.1rem}
+.diagram h4{font-size:.8rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin:0 0 .8rem}
+.step{border:1px solid var(--border);background:var(--bg);border-radius:8px;padding:.45rem .7rem;margin:.45rem 0;font-size:.9rem;text-align:center}
+.arrow{text-align:center;color:var(--muted);line-height:1;font-size:.9rem}
+.step.gate{border-color:var(--accent);color:var(--accent);font-weight:650}
+.step.bad-step{border-color:var(--bad);color:var(--bad)}
+.checks{font-size:.82rem;color:var(--muted);text-align:center;margin:.3rem 0 .5rem}
 </style>
 </head>
 <body>
@@ -42,72 +52,54 @@ footer{border-top:1px solid var(--border);margin-top:4rem;padding-top:1.4rem;col
 </nav>
 <main>
 <h1>The benchmark grading every text-to-SQL model has wrong answers in its key</h1>
-<p class="meta">July 2026 · the sqlsure launch story</p>
+<p class="meta">July 2026 · and the bigger problem it reveals: execution accuracy is not ground truth</p>
 
-<p>BIRD and Spider are the exams of the text-to-SQL world. Every model you've
-seen ranked — GPT, Claude, Gemini, every fine-tuned SQLCoder variant — gets
-its accuracy number by comparing its output against these benchmarks'
-<em>gold queries</em>: SQL written by experts, reviewed, and published as
-ground truth.</p>
+<p>BIRD and Spider are the exams of the text-to-SQL world. Every model
+you've seen ranked — GPT, Claude, Gemini, every fine-tuned SQLCoder
+variant — gets its accuracy number by comparing its output against these
+benchmarks' <em>gold queries</em>: SQL written by experts, reviewed, and
+published as ground truth.</p>
 
 <p>We pointed a deterministic semantic checker at the ground truth itself.
 It took about two seconds, and one of the answers in the key is provably
 wrong by a factor of eight.</p>
 
-<h2>The method (no AI, no labeling)</h2>
+<p>That finding is the hook. The reason to keep reading is what it
+implies: <strong>the way this entire field measures itself has a blind
+spot</strong> — and it's the same blind spot that ships wrong numbers to
+enterprise dashboards every day.</p>
+
+<h2>Layer 1 — Gold isn't always gold</h2>
+
+<h3>The method (no AI, no labeling)</h3>
 <p><a href="https://github.com/sqlsure/sqlsure">sqlsure</a> validates SQL
 against declared facts — what one row means, which joins multiply rows,
-what's safe to sum. Benchmarks conveniently ship those facts: every BIRD
-and Spider database publishes its primary and foreign keys. So the audit is
-mechanical:</p>
-<ol>
-<li>Build the rulebook from each database's own PK/FK declarations.</li>
-<li>Parse all 2,568 gold queries (1,034 Spider dev + 1,534 BIRD dev) and
-extract every join.</li>
-<li>Flag joins that contradict the declared facts. Review every flag by
-hand — and, for BIRD, by executing the shipped databases.</li>
-</ol>
+what's safe to sum. Benchmarks conveniently publish those facts: every
+BIRD and Spider database ships its primary and foreign keys. So the audit
+is mechanical: build the rulebook from each database's own declarations,
+parse all 2,568 gold queries (1,034 Spider dev + 1,534 BIRD dev), flag
+joins that contradict the declared facts, review every flag by hand — and,
+for BIRD, by executing the shipped databases.</p>
 
-<h2>Results</h2>
 <table>
 <tr><th></th><th>Spider dev</th><th>BIRD dev</th></tr>
 <tr><td>gold queries parsed</td><td>1,034 / 1,034</td><td>1,534 / 1,534</td></tr>
 <tr><td>joins observed</td><td>518</td><td>1,419</td></tr>
-<tr><td>backed by declared keys</td><td>93%</td><td>96%</td></tr>
 <tr><td>anomaly flags</td><td>30</td><td>15</td></tr>
 <tr><td><b>flags confirmed real</b></td><td><b>30/30</b></td><td><b>14/15</b> (1 benign-but-fragile)</td></tr>
 <tr><td>spurious flags</td><td class="good">0</td><td class="good">0</td></tr>
 </table>
 
-<h2>Finding 1: a schema with 29 declared links that forgot the one that matters</h2>
-<p>All 30 Spider flags traced to one database (<code>flight_2</code>) whose
-declared "primary key" for flights is the airline — impossible, since an
-airline has many flights — and whose flights→airlines relationship was
-never declared at all.</p>
-<p>BIRD has the mirror image: <code>european_football_2</code> declares
-<b>29 foreign keys</b> on its Match table — every one of the 22 player-slot
-columns — yet omits <code>Match.league_id → League.id</code>, the single
-most analytically important link in the database, which BIRD's own gold
-answers use 13 times. Root cause: the FK uses SQLite's implicit-PK form
-(<code>REFERENCES League</code> with no column), which the benchmark's
-schema-extraction script fails to resolve. We verified it against the
-shipped SQLite file and <a
-href="https://github.com/bird-bench/mini_dev/issues/37">filed it
-upstream</a> — the only two missing FKs in the entire dev set, both found.</p>
+<h3>The 8× answer</h3>
+<p>BIRD dev question #571 asks: <em>"For the user No.24, how many times is
+the number of his/her posts compared to his/her votes?"</em> We executed
+the benchmark's own database: user 24 has <b>3 posts</b> and <b>8
+votes</b>. The correct answer is 3 ÷ 8 = <b>0.375</b>. The gold query
+returns <span class="bad">3.0</span> — its join creates a 3 × 8 cartesian
+product per user, and the inflated count divided by the distinct count
+algebraically collapses to… the post count. Off by exactly the fan-out
+factor.</p>
 
-<h2>Finding 2: the gold answer that's wrong by 8×</h2>
-<p>BIRD dev question #571 asks:</p>
-<blockquote>"For the user No.24, how many times is the number of his/her
-posts compared to his/her votes?"</blockquote>
-<p>We executed the benchmark's own database: user 24 has <b>3 posts</b> and
-<b>8 votes</b>. The correct answer is 3 ÷ 8 = <b>0.375</b>. The gold query
-returns <span class="bad">3.0</span>.</p>
-<p>Why? The gold SQL joins <code>votes</code> to <code>posts</code> on
-<code>UserId = OwnerUserId</code> — two non-key columns — creating a
-3&nbsp;×&nbsp;8 = 24-row cartesian product per user. The inflated count
-divided by the distinct count algebraically collapses to… the post count.
-The query mechanically computes the wrong quantity, and the fan-out factor
-(8) is exactly how wrong it is.</p>
 <pre><code><span class="bad">-- BIRD gold (returns 3.0):</span>
 SELECT CAST(COUNT(T2.Id) AS REAL) / COUNT(DISTINCT T1.Id)
 FROM votes T1 JOIN posts T2 ON T1.UserId = T2.OwnerUserId
@@ -117,39 +109,150 @@ WHERE T1.UserId = 24
 WITH v AS (SELECT COUNT(*) c FROM votes WHERE UserId = 24),
      p AS (SELECT COUNT(*) c FROM posts WHERE OwnerUserId = 24)
 SELECT CAST(p.c AS REAL) / v.c FROM p, v</code></pre>
-<p><b>Every model that answers this question correctly is marked wrong by
-the benchmark.</b></p>
 
-<h2>The twist: the experts agree</h2>
+<p>We also found a schema-level defect — <code>european_football_2</code>
+declares 29 foreign keys on its Match table but omits the league link its
+own gold answers use 13 times — <a
+href="https://github.com/bird-bench/mini_dev/issues/37">filed
+upstream</a>. And the training set is worse: our follow-up audit of all
+9,428 BIRD <em>train</em> queries found 8.2% of joins unbacked by any
+declared relationship, including <a
+href="https://github.com/sqlsure/sqlsure/blob/main/docs/reports/bird-train-audit.md">eight
+databases that declare zero foreign keys at all</a>.</p>
+
 <p>After our audit, we found the <a
 href="https://github.com/uiuc-kang-lab/text_to_sql_benchmarks">expert-corrected
-BIRD dataset</a> from the VLDB'26 annotation-errors project. Ten of our
-fifteen BIRD flags were independently identified by their human review —
-and for #571, their expert-written correction computes exactly the 0.375 we
-computed. Their process: expert panels. Ours: dictionary lookups against
-declared keys, in two seconds, with zero spurious flags. The one thing our
-pass found that per-question corrections structurally can't: the
-schema-layer FK defect.</p>
+BIRD dataset</a> from the VLDB'26 annotation-errors project: 10 of our 15
+dev flags were independently identified by their human review, and their
+expert fix for #571 computes exactly our 0.375. Their process: expert
+panels. Ours: dictionary lookups against declared keys, in two seconds.</p>
 
-<h2>Why this matters beyond benchmarks</h2>
-<p>The field's standard yardstick — <em>execution accuracy</em>, "does the
-output match gold?" — is blind to the case where the generated SQL and the
-gold SQL share the same semantic bug. Expert authors fell into the fan-out
-trap while writing an <em>answer key</em>. Your analysts and your AI agents
-write the same joins every day, against warehouses with no answer key at
-all.</p>
-<p>That's what sqlsure is: the deterministic judge between any SQL author —
-human or AI — and your warehouse. It reads the facts your team already
-declared (dbt tests, PK/FK), rejects queries that contradict them, and
-attaches a fix the author can apply mechanically. In our benchmark, AI
-agents repaired 10/10 rejected queries by following the fix text
-verbatim.</p>
+<h2>Layer 2 — Execution accuracy is not ground truth</h2>
+
+<p>Here's the part that matters more than any single wrong answer. The
+field's standard metric — <em>execution accuracy</em> — asks: does the
+generated query's <b>result</b> match the gold query's <b>result</b>?</p>
+
+<p>To be fair to it: that design elegantly solves a real problem.
+<code>SELECT SUM(sales)</code> and an equivalent subquery formulation are
+different SQL with the same answer — comparing results instead of text
+correctly accepts both. <b>Equivalent SQL is the failure mode execution
+accuracy was built for, and it handles it well.</b></p>
+
+<p>But it has an unexaminable assumption: <em>that the gold result is
+right.</em> Follow the chain when it isn't:</p>
+
+<pre><code>question → gold SQL (wrong) → gold result (wrong) → execution accuracy
+                                                      rewards matching the wrong result
+                                                      penalizes the correct answer</code></pre>
+
+<p>A model that answers #571 correctly — 0.375 — is <b>marked wrong</b>.
+A model that makes the same fan-out mistake as the annotator is marked
+right. At scale, this doesn't just add noise: correcting annotation
+errors has been shown to materially change reported performance and even
+<b>reorder model rankings</b>. Companies choose AI systems off these
+leaderboards. Procurement decisions are partly downstream of annotation
+bugs.</p>
+
+<p>These are two fundamentally different failure modes, and only one of
+them is covered:</p>
+<table>
+<tr><th>Failure mode</th><th>Example</th><th>Does execution accuracy handle it?</th></tr>
+<tr><td>Equivalent SQL, same result</td><td>different formulations of the same sum</td><td class="good">yes — by design</td></tr>
+<tr><td>Wrong SQL, wrong gold result</td><td>#571's fan-out ratio</td><td class="bad">no — it rewards the bug</td></tr>
+</table>
+
+<h2>Layer 3 — Enterprise SQL is harder than any benchmark</h2>
+
+<p>Suppose every benchmark answer were perfect. The gap between "passes
+the benchmark" and "trustworthy in production" would still be wide,
+because enterprise analytics adds semantics no execution check can see:
+joins that <b>fan out</b> and silently double-count, <b>non-additive</b>
+measures (you can't sum averages), <b>semi-additive</b> measures
+(Monday's bed count plus Tuesday's isn't two days of beds), canonical
+metric definitions, row-level security, fiscal calendars, hidden business
+filters. A query can be syntactically valid, execute cleanly, <em>and
+match another query's result</em> while violating every one of these.
+<b>Correct SQL syntax ≠ correct analytics</b> — and the experts who wrote
+BIRD's answer key just demonstrated that even careful humans fall into
+exactly these traps.</p>
+
+<h2>Layer 4 — Constraint-aware evaluation</h2>
+
+<p>There's a complementary way to judge SQL: not "does the result match
+gold?" but <b>"does the query respect the declared semantics of the
+data?"</b> — grain, join cardinality, additivity, metric definitions,
+column policy. Facts that teams already declare in dbt tests, PK/FK
+constraints, and semantic layers.</p>
+
+<div class="diagram">
+  <div>
+    <h4>Traditional evaluation</h4>
+    <div class="step">natural-language question</div>
+    <div class="arrow">↓</div>
+    <div class="step">generated SQL</div>
+    <div class="arrow">↓</div>
+    <div class="step">execute → result</div>
+    <div class="arrow">↓</div>
+    <div class="step bad-step">compare against gold result</div>
+    <div class="checks">blind when gold itself is wrong</div>
+  </div>
+  <div>
+    <h4>Constraint-aware evaluation</h4>
+    <div class="step">natural-language question</div>
+    <div class="arrow">↓</div>
+    <div class="step">generated SQL</div>
+    <div class="arrow">↓</div>
+    <div class="step gate">validate against declared semantics</div>
+    <div class="checks">✓ grain · ✓ fan-out · ✓ additivity<br>✓ join keys · ✓ metric rules · ✓ policy</div>
+    <div class="arrow">↓</div>
+    <div class="step">semantic verdict + machine-actionable fix</div>
+  </div>
+</div>
+
+<p>The two axes are complements, not rivals: execution accuracy checks
+<em>outcome against a reference</em>; constraint validation checks
+<em>reasoning against declared truth</em> — needs no reference answer at
+all, which is exactly why it can audit the reference answers themselves.
+It's deterministic (same query, same verdict), costs ~0.1 ms instead of an
+LLM call, and every rejection carries a fix a model can apply mechanically.
+We've published it as an <a
+href="https://github.com/sqlsure/sqlsure/blob/main/integrations/eval_metric.py">open
+eval metric</a> — a <em>semantic pass rate</em> to report alongside
+execution accuracy — and the same engine runs as a CI gate and an <a
+href="https://github.com/sqlsure/sqlsure/blob/main/docs/MCP.md">MCP
+tool</a> agents call before executing.</p>
+
+<h2>Why this matters if you're deploying AI on your data</h2>
+<ul>
+<li><b>If you pick models off leaderboards:</b> some of the ranking signal
+is annotation error. Ask vendors for semantic-validity numbers, not just
+execution accuracy.</li>
+<li><b>If you fine-tune on BIRD/Spider train:</b> your model is learning
+from schemas where up to 8% of gold joins aren't backed by any declared
+relationship — including databases with no declared links at all.</li>
+<li><b>If your agents write SQL in production:</b> there is no gold answer
+to compare against out there. Constraint validation is the only
+reference-free check that exists — which is why it belongs <em>in the
+loop</em>, not just in the eval.</li>
+</ul>
+
+<h2>The future of text-to-SQL isn't just better models</h2>
+
+<p>SQL generation has become good enough that <b>evaluation is now the
+bottleneck</b>. The next generation of benchmarks shouldn't only check
+whether results match a reference — they should verify whether queries
+respect grain, join cardinality, additivity, metric definitions, and
+policy. Every claim in this post is reproducible from the <a
+href="https://github.com/sqlsure/sqlsure">open-source repo</a>
+(audit scripts, reports, and the eval metric included), and that's the
+direction we're building in at sqlsure: constraint-aware evaluation and
+enforcement for SQL, wherever it's written.</p>
 
 <pre><code>pip install sqlsure</code></pre>
 <p><a href="https://github.com/sqlsure/sqlsure">Star the repo</a>, run
 <code>python -m sqlsure.scan</code> on your own dbt project, and tell us
-what it finds. Full audit reports, methodology, and honest limitations:
-<a href="https://github.com/sqlsure/sqlsure/tree/main/docs">docs/</a>.</p>
+what it finds.</p>
 
 <footer>
 <p>Apache-2.0 · <a href="https://github.com/sqlsure/sqlsure">GitHub</a> ·

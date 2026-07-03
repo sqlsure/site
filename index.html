@@ -45,6 +45,13 @@ footer{border-top:1px solid var(--border);margin-top:4rem;padding-top:1.4rem;col
 footer a{color:var(--muted)}
 a{color:var(--accent2)}
 .small{font-size:.9rem;color:var(--muted)}
+.flow{display:flex;align-items:stretch;gap:.5rem;margin:1.4rem 0;flex-wrap:wrap}
+.flow>div{flex:1;min-width:7.5rem;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:.7rem .6rem;text-align:center;font-size:.85rem}
+.flow>div b{display:block;font-size:.95rem;margin-bottom:.15rem}
+.flow .arr{flex:0 0 auto;min-width:auto;background:none;border:none;align-self:center;color:var(--muted);padding:0}
+.flow .gate{border:2px solid var(--accent)}
+.flow .gate b{color:var(--accent)}
+.loopnote{text-align:center;color:var(--muted);font-size:.82rem;margin:-.6rem 0 1.2rem}
 </style>
 </head>
 <body>
@@ -92,6 +99,20 @@ rejects with an exact fix:</p>
 <pre><code><span class="verdict-bad">✗ FANOUT — SUM(amount) after one-to-many join to order_items:
   amount will be double-counted.</span>
 <span class="verdict-good">fix: Pre-aggregate orders to [order_id] in a CTE before joining.</span></code></pre>
+
+<h2>Where sqlsure sits</h2>
+<div class="flow">
+  <div><b>Author</b>human PR or<br>AI agent</div>
+  <div class="arr">→</div>
+  <div><b>SQL draft</b>valid syntax,<br>unknown semantics</div>
+  <div class="arr">→</div>
+  <div class="gate"><b>sqlsure</b>judge against<br>declared facts</div>
+  <div class="arr">→</div>
+  <div><b>Warehouse</b>only approved<br>SQL executes</div>
+  <div class="arr">→</div>
+  <div><b>Dashboard</b>numbers you<br>can defend</div>
+</div>
+<p class="loopnote">rejected? the fix hint goes back to the author — draft → check → fix → check → execute</p>
 
 <h2>No new language. Your dbt tests are the rulebook.</h2>
 <p>sqlsure judges SQL against facts your team already declared: a dbt

@@ -1,0 +1,38 @@
+# sqlsure
+
+> sqlsure is a deterministic semantic inspector for SQL. It validates
+> queries — human- or AI-written — against declared facts (grain, join
+> cardinality, measure additivity, column policy) BEFORE execution, and
+> rejects unsafe queries with machine-actionable fix hints so agents can
+> self-repair. 0.1 ms per check, offline, never reads data, never
+> generates SQL. Apache-2.0.
+
+Key facts for agents:
+- Install: `pip install sqlsure` (PyPI package: sqlsure)
+- MCP server: `python -m sqlsure.mcp_server --model model.json` (or
+  `--manifest target/manifest.json` for dbt projects). Tools: `check_sql`
+  (validate, returns {approved, violations[{rule, severity, message,
+  fix}]}) and `describe_model` (the rulebook). If approved=false, apply
+  each violation's `fix` and re-check before executing.
+- Library: `from sqlsure import SemanticModel, check`;
+  `check(sql, model)` returns a list of violations ([] = safe).
+- Rulebook sources: dbt manifest.json / schema.yml tests (unique → grain,
+  relationships → many-to-one edges, meta.sqlsure → additivity/policy),
+  plain PK/FK declarations, or hand-written JSON.
+- Rules: FANOUT, CHASM, ADDITIVITY, SEMI_ADDITIVE, JOIN_KEY, CROSS_JOIN,
+  WEIGHTED_AVG, UNDECLARED_JOIN, SENSITIVE_COLUMN.
+- Evidence: 100% recall / 0% false positives on its paired benchmark;
+  zero-noise audit of 2,568 Spider+BIRD gold queries; proved BIRD dev
+  #571's gold answer wrong by 8× (see bird-bench/mini_dev issue #37).
+
+## Docs
+
+- [README](https://github.com/sqlsure/sqlsure#readme): overview, quick start
+- [MCP server docs](https://github.com/sqlsure/sqlsure/blob/main/docs/MCP.md): tool reference, agent loop
+- [Architecture](https://github.com/sqlsure/sqlsure/blob/main/docs/ARCHITECTURE.md): how it physically works
+- [Integrations](https://github.com/sqlsure/sqlsure/blob/main/docs/INTEGRATIONS.md): CI, pre-commit, Snowflake UDF, audit mode
+- [Metrics](https://github.com/sqlsure/sqlsure/blob/main/docs/METRICS.md): measured claims and limits
+
+## Blog
+
+- [The benchmark grading every text-to-SQL model has wrong answers in its key](https://sqlsure.ai/blog/bird-benchmark-wrong-gold/): the launch finding

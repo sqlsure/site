@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>sqlsure — AI writes your SQL. sqlsure makes sure it's right.</title>
+<meta name="description" content="A deterministic semantic inspector for SQL. Catches fan-out double-counting, summed averages, wrong join keys, and PII exposure before the query runs — on human- or AI-written SQL. Zero false alarms on 2,568 benchmark gold queries.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✅</text></svg>">
+<link rel="canonical" href="https://sqlsure.ai/">
+<style>
+:root{--bg:#ffffff;--fg:#111418;--muted:#5b6470;--accent:#0b6e4f;--accent2:#0b4f6e;--card:#f5f7f9;--border:#e3e7ec;--bad:#b42318;--good:#0b6e4f}
+@media(prefers-color-scheme:dark){:root{--bg:#0e1116;--fg:#e8ebee;--muted:#9aa4b0;--accent:#3ecf8e;--accent2:#5cb8e4;--card:#161b22;--border:#2a313a;--bad:#ff7b6e;--good:#3ecf8e}}
+*{box-sizing:border-box;margin:0}
+body{background:var(--bg);color:var(--fg);font:17px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+main{max-width:44rem;margin:0 auto;padding:0 1.25rem 5rem}
+nav{display:flex;gap:1.4rem;align-items:baseline;padding:1.4rem 0;max-width:44rem;margin:0 auto;padding-left:1.25rem;padding-right:1.25rem}
+nav .brand{font-weight:750;font-size:1.1rem}
+nav a{color:var(--muted);text-decoration:none;font-size:.95rem}
+nav a:hover{color:var(--fg)}
+nav .brand a{color:var(--fg)}
+h1{font-size:2.3rem;line-height:1.15;letter-spacing:-.02em;margin:2.5rem 0 1rem;font-weight:800}
+h1 em{font-style:normal;color:var(--accent)}
+h2{font-size:1.35rem;margin:3rem 0 .8rem;letter-spacing:-.01em}
+p{margin:.8rem 0}
+.sub{font-size:1.15rem;color:var(--muted)}
+.install{display:flex;gap:.8rem;align-items:center;margin:1.6rem 0;flex-wrap:wrap}
+code,pre{font:.88em/1.55 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+.pill{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:.55rem .9rem}
+.btn{display:inline-block;background:var(--accent);color:#fff;padding:.55rem 1rem;border-radius:8px;text-decoration:none;font-weight:600;font-size:.95rem}
+.btn.ghost{background:transparent;color:var(--fg);border:1px solid var(--border)}
+.proof{display:grid;grid-template-columns:repeat(auto-fit,minmax(9.5rem,1fr));gap:.8rem;margin:2.2rem 0}
+.proof div{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:1rem}
+.proof b{display:block;font-size:1.5rem;letter-spacing:-.02em}
+.proof span{color:var(--muted);font-size:.85rem}
+pre{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:1rem;overflow-x:auto;margin:1rem 0}
+.verdict-bad{color:var(--bad)} .verdict-good{color:var(--good)}
+.doors{display:grid;gap:.8rem;margin:1rem 0}
+.doors div{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:1rem 1.1rem}
+.doors b{display:block;margin-bottom:.2rem}
+.doors p{margin:.2rem 0;color:var(--muted);font-size:.95rem}
+blockquote{border-left:3px solid var(--accent);padding:.2rem 0 .2rem 1.1rem;margin:1.6rem 0;color:var(--muted)}
+blockquote b{color:var(--fg)}
+ul{padding-left:1.2rem} li{margin:.35rem 0}
+footer{border-top:1px solid var(--border);margin-top:4rem;padding-top:1.4rem;color:var(--muted);font-size:.9rem}
+footer a{color:var(--muted)}
+a{color:var(--accent2)}
+.small{font-size:.9rem;color:var(--muted)}
+</style>
+</head>
+<body>
+<nav>
+  <span class="brand"><a href="/">sqlsure</a></span>
+  <a href="/blog/">Blog</a>
+  <a href="https://github.com/sqlsure/sqlsure">GitHub</a>
+  <a href="https://pypi.org/project/sqlsure/">PyPI</a>
+  <a href="https://github.com/sqlsure/sqlsure/blob/main/docs/MCP.md">MCP</a>
+</nav>
+<main>
+
+<h1>AI writes your SQL.<br><em>sqlsure makes sure it's right.</em></h1>
+
+<p class="sub">A query can be perfectly valid, run without error, and return a
+number that's silently wrong — revenue double-counted by a join, an average
+summed, a patient ID exposed. Databases don't catch it. Linters don't catch
+it. LLMs reviewing their own SQL don't catch it.</p>
+
+<p class="sub"><strong style="color:var(--fg)">sqlsure does — deterministically,
+in 0.1&nbsp;ms, before the query runs.</strong></p>
+
+<div class="install">
+  <span class="pill"><code>pip install sqlsure</code></span>
+  <a class="btn" href="https://github.com/sqlsure/sqlsure">View on GitHub</a>
+  <a class="btn ghost" href="/blog/bird-benchmark-wrong-gold/">Read the BIRD finding →</a>
+</div>
+
+<div class="proof">
+  <div><b>2,568</b><span>expert-written benchmark queries audited</span></div>
+  <div><b>45 flags</b><span>raised — every one traced to a real defect</span></div>
+  <div><b>0</b><span>false alarms on code we didn't write</span></div>
+  <div><b>8×</b><span>how wrong a BIRD gold answer we disproved is</span></div>
+</div>
+
+<h2>The bug that ships to your dashboard</h2>
+<pre><code>SELECT o.region, SUM(o.amount) AS revenue
+FROM orders o
+JOIN order_items i ON o.order_id = i.order_id
+GROUP BY 1</code></pre>
+<p>Valid SQL. Runs clean. Every order's amount counted <em>once per line
+item</em>. The total is inflated, the dashboard looks normal, and nobody
+knows — that's the fan-out trap, one of nine silent-error classes sqlsure
+rejects with an exact fix:</p>
+<pre><code><span class="verdict-bad">✗ FANOUT — SUM(amount) after one-to-many join to order_items:
+  amount will be double-counted.</span>
+<span class="verdict-good">fix: Pre-aggregate orders to [order_id] in a CTE before joining.</span></code></pre>
+
+<h2>No new language. Your dbt tests are the rulebook.</h2>
+<p>sqlsure judges SQL against facts your team already declared: a dbt
+<code>unique</code> test <em>is</em> a grain declaration, a
+<code>relationships</code> test <em>is</em> join cardinality, a one-line
+<code>meta</code> tag marks what's safe to sum. Plain PK/FK declarations work
+too. Rules are dictionary lookups, not LLM calls — same input, same verdict,
+every time, offline, and it never reads your data.</p>
+
+<h2>Three doors, one engine</h2>
+<div class="doors">
+  <div><b>CI gate</b><p>One GitHub Action. PRs that double-count get a red X
+  and the exact fix as a comment.</p></div>
+  <div><b>MCP server</b><p>Your AI agent checks every query before executing;
+  rejections carry fixes the agent applies itself. Draft → check → fix →
+  execute.</p></div>
+  <div><b>Python library</b><p><code>check(sql, model)</code> inside any
+  text-to-SQL product — plus a drop-in gate for Vanna/WrenAI-style
+  generators and a semantic eval metric.</p></div>
+</div>
+
+<blockquote>
+<b>Receipts, not promises.</b> We ran sqlsure over the gold answers of
+Spider and BIRD — the benchmarks every text-to-SQL model is graded on. It
+mechanically found a schema defect affecting 13 questions and a gold answer
+that's provably wrong by 8× — from the exact bug class it targets. Ten of
+its fifteen BIRD flags were independently confirmed by a human expert
+review we discovered afterward. <a href="/blog/bird-benchmark-wrong-gold/">The
+full story →</a>
+</blockquote>
+
+<h2>What sqlsure is not</h2>
+<ul>
+  <li><b>Not a SQL generator.</b> The agent stays the author; sqlsure stays
+  the judge. Judges that also play stop being trusted.</li>
+  <li><b>Not a semantic layer.</b> dbt, Cube, and Snowflake define
+  semantics; sqlsure <em>enforces</em> them on arbitrary SQL — including
+  everything that never routes through a semantic layer.</li>
+  <li><b>Not omniscient.</b> Undeclared relationships come back "can't
+  verify," never "looks fine." Honest uncertainty is a feature.</li>
+</ul>
+
+<h2>Start in 60 seconds</h2>
+<pre><code>pip install sqlsure
+
+# audit any dbt repo (no dbt install needed)
+python -m sqlsure.scan path/to/repo --report report.md
+
+# give your agent the inspector
+claude mcp add sqlsure -- python -m sqlsure.mcp_server --manifest target/manifest.json</code></pre>
+
+<footer>
+<p>Apache-2.0 · <a href="https://github.com/sqlsure/sqlsure">GitHub</a> ·
+<a href="https://pypi.org/project/sqlsure/">PyPI</a> ·
+<a href="/llms.txt">llms.txt</a> ·
+<a href="/blog/">Blog</a></p>
+</footer>
+</main>
+</body>
+</html>

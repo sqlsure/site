@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Blog — sqlsure</title>
+<meta name="description" content="Findings, methodology, and engineering notes from sqlsure — the semantic inspector for SQL.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✅</text></svg>">
+<link rel="canonical" href="https://sqlsure.ai/blog/">
+<style>
+:root{--bg:#ffffff;--fg:#111418;--muted:#5b6470;--accent:#0b6e4f;--accent2:#0b4f6e;--card:#f5f7f9;--border:#e3e7ec}
+@media(prefers-color-scheme:dark){:root{--bg:#0e1116;--fg:#e8ebee;--muted:#9aa4b0;--accent:#3ecf8e;--accent2:#5cb8e4;--card:#161b22;--border:#2a313a}}
+*{box-sizing:border-box;margin:0}
+body{background:var(--bg);color:var(--fg);font:17px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+main{max-width:42rem;margin:0 auto;padding:0 1.25rem 5rem}
+nav{display:flex;gap:1.4rem;align-items:baseline;padding:1.4rem 0;max-width:42rem;margin:0 auto;padding-left:1.25rem;padding-right:1.25rem}
+nav .brand{font-weight:750;font-size:1.1rem}
+nav a{color:var(--muted);text-decoration:none;font-size:.95rem}
+nav .brand a{color:var(--fg)}
+h1{font-size:1.8rem;margin:2rem 0 1.5rem;letter-spacing:-.02em}
+.post{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:1.2rem 1.3rem;margin:1rem 0}
+.post a{color:var(--fg);text-decoration:none;font-weight:700;font-size:1.15rem}
+.post p{color:var(--muted);margin:.4rem 0 0}
+.date{font-size:.85rem;color:var(--muted)}
+</style>
+</head>
+<body>
+<nav>
+  <span class="brand"><a href="/">sqlsure</a></span>
+  <a href="/blog/">Blog</a>
+  <a href="https://github.com/sqlsure/sqlsure">GitHub</a>
+  <a href="https://pypi.org/project/sqlsure/">PyPI</a>
+</nav>
+<main>
+<h1>Blog</h1>
+<div class="post">
+  <span class="date">July 2026</span><br>
+  <a href="/blog/bird-benchmark-wrong-gold/">The benchmark grading every text-to-SQL model has wrong answers in its key</a>
+  <p>We ran a deterministic semantic check over 2,568 gold queries from
+  Spider and BIRD: zero false alarms, a schema defect filed upstream, and
+  one gold answer proven wrong by 8× — by executing the benchmark's own
+  database.</p>
+</div>
+</main>
+</body>
+</html>

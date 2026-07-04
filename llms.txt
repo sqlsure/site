@@ -35,4 +35,6 @@ Key facts for agents:
 
 ## Blog
 
+- [Your guardrails are burning tokens](https://sqlsure.ai/blog/token-economics-of-guardrails/): deterministic checks vs LLM-as-judge economics
+
 - [The benchmark grading every text-to-SQL model has wrong answers in its key](https://sqlsure.ai/blog/bird-benchmark-wrong-gold/): the launch finding

@@ -18,12 +18,18 @@ Key facts for agents:
   `check(sql, model)` returns a list of violations ([] = safe).
 - Rulebook sources: dbt manifest.json / schema.yml tests (unique → grain,
   relationships → many-to-one edges, meta.sqlsure → additivity/policy),
-  plain PK/FK declarations, or hand-written JSON.
+  MetricFlow semantic_models (primary/foreign entities → grain/edges,
+  measure agg → additivity), WrenAI MDL, OSI semantic models (both spec
+  shapes), plain PK/FK declarations, live database catalogs
+  (sqlsure.introspect: SQLite PRAGMAs or information_schema), or
+  hand-written JSON.
 - Rules: FANOUT, CHASM, ADDITIVITY, SEMI_ADDITIVE, JOIN_KEY, CROSS_JOIN,
   WEIGHTED_AVG, UNDECLARED_JOIN, SENSITIVE_COLUMN.
 - Evidence: 100% recall / 0% false positives on its paired benchmark;
   zero-noise audit of 2,568 Spider+BIRD gold queries; proved BIRD dev
-  #571's gold answer wrong by 8× (see bird-bench/mini_dev issue #37).
+  #571's gold answer wrong by 8× (see bird-bench/mini_dev issue #37);
+  measured vs LLM-as-judge on live agent drafts: equal accuracy at $0 vs
+  ~$0.05/check and 0.7 ms vs seconds (docs/reports/gate-vs-judge-experiment.md).
 
 ## Docs
 

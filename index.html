@@ -114,13 +114,17 @@ rejects with an exact fix:</p>
 </div>
 <p class="loopnote">rejected? the fix hint goes back to the author — draft → check → fix → check → execute</p>
 
-<h2>No new language. Your dbt tests are the rulebook.</h2>
-<p>sqlsure judges SQL against facts your team already declared: a dbt
-<code>unique</code> test <em>is</em> a grain declaration, a
-<code>relationships</code> test <em>is</em> join cardinality, a one-line
-<code>meta</code> tag marks what's safe to sum. Plain PK/FK declarations work
-too. Rules are dictionary lookups, not LLM calls — same input, same verdict,
-every time, offline, and it never reads your data.</p>
+<h2>No new language. Facts you already declared are the rulebook.</h2>
+<p>sqlsure judges SQL against declarations your team already wrote,
+wherever they live: dbt <code>unique</code>/<code>relationships</code>
+tests, <b>MetricFlow semantic models</b> (the dbt Semantic Layer's own
+definitions — enforced on the SQL that <em>bypasses</em> the layer),
+<b>WrenAI MDL</b>, <b>OSI</b> semantic models (both published spec
+shapes), plain PK/FK declarations, or — with no semantic layer at all —
+<b>the live database catalog itself</b> via
+<code>sqlsure.introspect</code>. Rules are dictionary lookups, not LLM
+calls — same input, same verdict, every time, offline, and it never
+reads your data.</p>
 
 <h2>Three doors, one engine</h2>
 <div class="doors">
@@ -141,7 +145,12 @@ mechanically found a schema defect affecting 13 questions and a gold answer
 that's provably wrong by 8× — from the exact bug class it targets. Ten of
 its fifteen BIRD flags were independently confirmed by a human expert
 review we discovered afterward. <a href="/blog/bird-benchmark-wrong-gold/">The
-full story →</a>
+full story →</a><br><br>
+And when we A/B-tested guardrails on live agent drafts: the sqlsure gate
+matched an LLM-as-judge on accuracy at <b>$0 per check vs ~$0.05</b>, in
+<b>0.7&nbsp;ms vs seconds</b> — and the judge's only rejections were false
+alarms. <a href="https://github.com/sqlsure/sqlsure/blob/main/docs/reports/gate-vs-judge-experiment.md">The
+measured comparison →</a>
 </blockquote>
 
 <h2>What sqlsure is not</h2>

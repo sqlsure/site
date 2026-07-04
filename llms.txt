@@ -1,7 +1,7 @@
 # sqlsure
 
 > sqlsure is a deterministic semantic inspector for SQL. It validates
-> queries — human- or AI-written — against declared facts (grain, join
+> queries — human-written or from any text-to-SQL / NL2SQL agent — against declared facts (grain, join
 > cardinality, measure additivity, column policy) BEFORE execution, and
 > rejects unsafe queries with machine-actionable fix hints so agents can
 > self-repair. 0.1 ms per check, offline, never reads data, never

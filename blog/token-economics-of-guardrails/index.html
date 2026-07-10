@@ -53,10 +53,11 @@ canonical agent-safety pattern</a>, productized everywhere: <a
 href="https://guardrailsai.com/blog/guardrails-litellm-validate-llm-output">Guardrails
 AI</a> validators, <a
 href="https://docs.databricks.com/aws/en/mlflow3/genai/eval-monitor/third-party-scorers/guardrails">Databricks
-MLflow scorers</a>, and in text-to-SQL (NL2SQL) specifically, systems like
-Snowflake's Cortex Analyst employing <a
-href="https://arxiv.org/pdf/2604.28049">LLM-based evaluation layers</a> to
-judge whether generated SQL matches the question.</p>
+MLflow scorers</a>, and in text-to-SQL (NL2SQL) specifically,
+Snowflake's Cortex Analyst team <a
+href="https://www.snowflake.com/en/blog/engineering/cortex-analyst-text-to-sql-accuracy-bi/">experimented
+with LLM judges for SQL evaluation — and reported that judging SQL "can be
+as challenging as generating the correct SQL itself."</a></p>
 
 <p>It works, partially (more on that below). But notice what the pattern
 costs: <b>every check is an inference call.</b> Tokens on every query.
@@ -91,9 +92,10 @@ all.</p>
 
 <h2>The variance problem (the part that isn't about money)</h2>
 
-<p>Even with free tokens, LLM judges have a documented flaw: <a
-href="https://arxiv.org/pdf/2604.28049">evaluator variance</a> — the same
-query pair receives inconsistent verdicts across calls. A guardrail that
+<p>Even with free tokens, LLM judges have <a
+href="https://arxiv.org/abs/2306.05685">documented flaws</a>: verdicts
+vary across calls and carry systematic biases — the same
+query pair can receive inconsistent verdicts. A guardrail that
 says "unsafe" on Tuesday and "fine" on Wednesday isn't a guardrail; it's a
 mood. And for SQL semantics specifically, the judge has a deeper problem:
 <b>it doesn't know your join cardinalities.</b> No amount of reflection

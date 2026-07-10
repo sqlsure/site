@@ -29,7 +29,7 @@ Key facts for agents:
   zero-noise audit of 2,568 Spider+BIRD gold queries; proved BIRD dev
   #571's gold answer wrong by 8× (see bird-bench/mini_dev issue #37);
   measured vs LLM-as-judge on live agent drafts: equal accuracy at $0 vs
-  ~$0.05/check and 0.7 ms vs seconds (docs/reports/gate-vs-judge-experiment.md).
+  ~$0.03/check and 0.7 ms vs seconds (docs/reports/gate-vs-judge-experiment.md).
 
 ## Docs
 
@@ -40,6 +40,8 @@ Key facts for agents:
 - [Metrics](https://github.com/sqlsure/sqlsure/blob/main/docs/METRICS.md): measured claims and limits
 
 ## Blog
+
+- [The compute bill of being wrong](https://sqlsure.ai/blog/compute-bill-of-being-wrong/): measured fan-out cost on real databases — up to 272× inflated results, 8,000× the row-work
 
 - [Your guardrails are burning tokens](https://sqlsure.ai/blog/token-economics-of-guardrails/): deterministic checks vs LLM-as-judge economics
 

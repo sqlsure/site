@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The compute bill of being wrong — sqlsure</title>
+<meta name="description" content="We measured what fan-out queries actually cost on real benchmark databases: results inflated up to 272×, and the wrong query did up to 8,000× more work than the right one. What a deterministic gate buys a text-to-SQL (NL2SQL) product, in dollars.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✅</text></svg>">
+<link rel="canonical" href="https://sqlsure.ai/blog/compute-bill-of-being-wrong/">
+<style>
+:root{--bg:#ffffff;--fg:#111418;--muted:#5b6470;--accent:#0b6e4f;--accent2:#0b4f6e;--card:#f5f7f9;--border:#e3e7ec;--bad:#b42318;--good:#0b6e4f}
+@media(prefers-color-scheme:dark){:root{--bg:#0e1116;--fg:#e8ebee;--muted:#9aa4b0;--accent:#3ecf8e;--accent2:#5cb8e4;--card:#161b22;--border:#2a313a;--bad:#ff7b6e;--good:#3ecf8e}}
+*{box-sizing:border-box;margin:0}
+body{background:var(--bg);color:var(--fg);font:17px/1.7 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+main{max-width:42rem;margin:0 auto;padding:0 1.25rem 5rem}
+nav{display:flex;gap:1.4rem;align-items:baseline;padding:1.4rem 0;max-width:42rem;margin:0 auto;padding-left:1.25rem;padding-right:1.25rem}
+nav .brand{font-weight:750;font-size:1.1rem}
+nav a{color:var(--muted);text-decoration:none;font-size:.95rem}
+nav .brand a{color:var(--fg)}
+h1{font-size:1.9rem;line-height:1.2;letter-spacing:-.02em;margin:2rem 0 .4rem;font-weight:800}
+h2{font-size:1.3rem;margin:2.6rem 0 .6rem}
+p{margin:.9rem 0}
+.meta{color:var(--muted);font-size:.9rem;margin-bottom:2rem}
+code,pre{font:.86em/1.55 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+pre{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:1rem;overflow-x:auto;margin:1rem 0}
+table{border-collapse:collapse;width:100%;margin:1rem 0;font-size:.9rem}
+td,th{border:1px solid var(--border);padding:.5rem .6rem;text-align:left}
+th{background:var(--card)}
+.tablewrap{overflow-x:auto}
+blockquote{border-left:3px solid var(--accent);padding:.2rem 0 .2rem 1.1rem;margin:1.4rem 0;color:var(--muted)}
+a{color:var(--accent2)}
+ul,ol{padding-left:1.3rem} li{margin:.4rem 0}
+.bad{color:var(--bad);font-weight:600}.good{color:var(--good);font-weight:600}
+footer{border-top:1px solid var(--border);margin-top:4rem;padding-top:1.4rem;color:var(--muted);font-size:.9rem}
+</style>
+</head>
+<body>
+<nav>
+  <span class="brand"><a href="/">sqlsure</a></span>
+  <a href="/blog/">Blog</a>
+  <a href="https://github.com/sqlsure/sqlsure">GitHub</a>
+  <a href="https://pypi.org/project/sqlsure/">PyPI</a>
+</nav>
+<main>
+<h1>The compute bill of being wrong</h1>
+<p class="meta">July 2026 · measured on real benchmark databases · for people building text-to-SQL (NL2SQL) systems</p>
+
+<p>If you build or operate a text-to-SQL system, you already know the
+generated query can be wrong. Here's the part that doesn't get measured:
+<b>the wrong query usually isn't just wrong — it's expensive.</b> The classic
+silent error in generated SQL, join fan-out, multiplies rows before
+aggregating them. Your warehouse happily bills you for every multiplied
+row.</p>
+
+<p>So we measured it. We took real databases from the BIRD benchmark, wrote
+the fan-out version and the correct version of the same aggregate, and ran
+both on the same engine. Three cases:</p>
+
+<div class="tablewrap">
+<table>
+<tr><th>database (real BIRD data)</th><th>query shape</th><th>result inflation</th><th>rows through the aggregate</th><th>wall time</th></tr>
+<tr><td>financial</td><td>SUM(loan.amount) joined to trans</td><td class="bad">271.9× too high</td><td>682 → 191,556 (281×)</td><td class="bad">0.1 ms → 568 ms (~8,000×)</td></tr>
+<tr><td>formula_1</td><td>SUM(results.points) joined to lapTimes</td><td class="bad">37.3× too high</td><td>23,657 → 419,985 (18×)</td><td class="bad">1.4 ms → 30 ms (22×)</td></tr>
+<tr><td>codebase_community</td><td>SUM(posts.ViewCount) joined to votes</td><td class="bad">3.1× too high</td><td colspan="2"><em>cheaper and wrong</em> — see below</td></tr>
+</table>
+</div>
+
+<p>The first case deserves a second look. The correct query sums 682 loan
+rows in a tenth of a millisecond. The fan-out version pushes
+<b>191,556 rows</b> through the same aggregate — every loan repeated once
+per transaction on its account — takes roughly <b>8,000× longer</b>, and
+returns a number that is <b>272× too large</b>. On a laptop that's half a
+second. On a cloud warehouse, compute is billed by work: a query that does
+280× the row-work does it on your invoice, every dashboard refresh, every
+scheduled run, until someone notices. And because the query is
+syntactically perfect and returns plausible-looking output, nobody
+notices.</p>
+
+<p>The third case is the honest counterexample — and a second failure mode.
+The inner join to <code>votes</code> <em>drops</em> posts that have no
+votes while <em>multiplying</em> posts that have many. The query runs
+<em>faster</em> than the correct one and still returns a total 3.1× too
+high. So no, you can't catch this class by watching query cost — sometimes
+being wrong is cheap. You catch it by checking the join's declared
+cardinality before execution.</p>
+
+<h2>The three bills</h2>
+
+<p>Put together with what we've measured previously, a text-to-SQL system
+without a verification layer runs up three separate bills:</p>
+
+<ol>
+<li><b>The warehouse bill</b> — the table above. Fan-out queries do 20× to
+8,000× the row-work of their correct versions on the same engine.</li>
+<li><b>The guardrail bill</b> — the industry's default check is
+LLM-as-judge. <a href="https://github.com/sqlsure/sqlsure/blob/main/docs/reports/gate-vs-judge-experiment.md">When
+we A/B-tested it on live agent drafts</a>, the judge cost ~$0.03 per check
+(at small-model prices — a frontier-model judge costs several times more),
+took seconds per verdict, and its only rejections in 44 checks were false
+alarms on correct queries. At 10,000 agent queries a day, that's roughly
+<b>$300/day (~$108k/yr) of judge spend that changed zero outcomes</b> in
+our experiment. Even Snowflake's Cortex Analyst team <a
+href="https://www.snowflake.com/en/blog/engineering/cortex-analyst-text-to-sql-accuracy-bi/">reported</a>
+that judging SQL with LLMs "can be as challenging as generating the
+correct SQL itself."</li>
+<li><b>The retry bill</b> — when a check does flag something, a vague
+critique ("re-examine your joins") burns generation tokens across multiple
+repair rounds. A deterministic rejection carries a machine-actionable fix
+("pre-aggregate loan to account_id before joining trans"); in <a
+href="https://github.com/sqlsure/sqlsure/blob/main/docs/METRICS.md">our
+benchmark</a>, applying the hint verbatim produced a passing query
+<b>10 out of 10 times in one round</b>.</li>
+</ol>
+
+<h2>What a deterministic gate costs instead</h2>
+
+<p>The comparison number for all three bills: a constraint check against
+declared facts runs in <b>0.7 ms</b> (median, measured on live agent
+drafts) at <b>$0 per check</b>, gives the same verdict every time, and in
+our head-to-head never blocked a correct query. It catches exactly the
+class above — fan-out, wrong join keys, unsafe aggregation — by lookup,
+before execution, so the 191,556-row version never runs at all.</p>
+
+<blockquote>The gate doesn't just prevent wrong numbers. It prevents
+<b>paying for</b> wrong numbers — three times.</blockquote>
+
+<h2>"But we already have a semantic layer / our model is better than Haiku"</h2>
+
+<p>Both fair. Two honest boundaries and one unlock:</p>
+
+<ul>
+<li><b>Semantic layers prevent this for queries routed through them.</b>
+MetricFlow, Cube, and friends generate correct SQL by construction —
+inside their walls. The SQL your agent writes directly, the ad-hoc
+notebook query, the CI diff: none of it routes through the layer. The gate
+covers everything outside the walls — and it reads the layer's own
+declarations to do it.</li>
+<li><b>Better models commit this class less often — not never.</b> The
+BIRD benchmark's own expert-written gold answers contain fan-out errors
+(<a href="/blog/bird-benchmark-wrong-gold/">we proved one wrong by 8× by
+executing it</a>). If experts writing an answer key commit the bug, your
+generator sometimes will too. Tail events × query volume = weekly
+events.</li>
+<li><b>The unlock: your users' declarations already exist.</b> sqlsure
+builds its rulebook from dbt tests, MetricFlow semantic models, WrenAI
+MDL, OSI models, plain PK/FK — or, with no semantic layer at all, straight
+from the <a href="https://github.com/sqlsure/sqlsure#where-the-rulebook-comes-from">live
+database catalog</a>. If you ship a text-to-SQL product, the verification
+layer is one function call around your generator, and it speaks your
+users' existing metadata.</li>
+</ul>
+
+<h2>Reproduce it</h2>
+
+<p>Everything above is checkable: the fan-out measurements run on BIRD's
+public databases with the queries shown; the gate-vs-judge experiment
+ships as <a
+href="https://github.com/sqlsure/sqlsure/blob/main/benchmarks/experiment_gate_vs_judge.py">a
+script in the repo</a> with per-question receipts; the benchmark and its
+limits are in <a
+href="https://github.com/sqlsure/sqlsure/blob/main/docs/METRICS.md">METRICS.md</a>.
+Numbers we can't defend, we don't publish — measured on a laptop's SQLite,
+it's the <em>relative</em> factors that transfer to your warehouse, and
+your join depths are deeper than a benchmark's.</p>
+
+<pre><code>pip install sqlsure</code></pre>
+
+<p>Building an NL2SQL product and want the gate inside it — or want to
+argue with our numbers? <a
+href="https://github.com/sqlsure/sqlsure/issues">Open an issue</a>. Both
+conversations are welcome.</p>
+
+<footer>
+<p>Apache-2.0 · <a href="https://github.com/sqlsure/sqlsure">GitHub</a> ·
+<a href="https://pypi.org/project/sqlsure/">PyPI</a> · <a href="/">sqlsure.ai</a></p>
+</footer>
+</main>
+</body>
+</html>

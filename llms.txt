@@ -41,6 +41,8 @@ Key facts for agents:
 
 ## Blog
 
+- [Your ontology is documentation until something enforces it](https://sqlsure.ai/blog/enforcing-the-ontology/): OMOP CDM as a zero-authoring rulebook — 39 tables, 94 edges from the published spec; catches double-counted patients and summed lab values
+
 - [The compute bill of being wrong](https://sqlsure.ai/blog/compute-bill-of-being-wrong/): measured fan-out cost on real databases — up to 272× inflated results, 8,000× the row-work
 
 - [Your guardrails are burning tokens](https://sqlsure.ai/blog/token-economics-of-guardrails/): deterministic checks vs LLM-as-judge economics

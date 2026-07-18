@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Your ontology is documentation until something enforces it — sqlsure</title>
+<meta name="description" content="Ontology-grounded AI is the right idea — but every ontology system today informs the model and hopes. We ran a deterministic enforcer over two real ontologies, including OMOP, the clinical-research standard: 39 tables and 94 relationships of rulebook from the published spec, zero authoring.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✅</text></svg>">
+<link rel="canonical" href="https://sqlsure.ai/blog/enforcing-the-ontology/">
+<style>
+:root{--bg:#ffffff;--fg:#111418;--muted:#5b6470;--accent:#0b6e4f;--accent2:#0b4f6e;--card:#f5f7f9;--border:#e3e7ec;--bad:#b42318;--good:#0b6e4f}
+@media(prefers-color-scheme:dark){:root{--bg:#0e1116;--fg:#e8ebee;--muted:#9aa4b0;--accent:#3ecf8e;--accent2:#5cb8e4;--card:#161b22;--border:#2a313a;--bad:#ff7b6e;--good:#3ecf8e}}
+*{box-sizing:border-box;margin:0}
+body{background:var(--bg);color:var(--fg);font:17px/1.7 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+main{max-width:42rem;margin:0 auto;padding:0 1.25rem 5rem}
+nav{display:flex;gap:1.4rem;align-items:baseline;padding:1.4rem 0;max-width:42rem;margin:0 auto;padding-left:1.25rem;padding-right:1.25rem}
+nav .brand{font-weight:750;font-size:1.1rem}
+nav a{color:var(--muted);text-decoration:none;font-size:.95rem}
+nav .brand a{color:var(--fg)}
+h1{font-size:1.9rem;line-height:1.2;letter-spacing:-.02em;margin:2rem 0 .4rem;font-weight:800}
+h2{font-size:1.3rem;margin:2.6rem 0 .6rem}
+p{margin:.9rem 0}
+.meta{color:var(--muted);font-size:.9rem;margin-bottom:2rem}
+code,pre{font:.86em/1.55 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+pre{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:1rem;overflow-x:auto;margin:1rem 0}
+blockquote{border-left:3px solid var(--accent);padding:.2rem 0 .2rem 1.1rem;margin:1.4rem 0;color:var(--muted)}
+a{color:var(--accent2)}
+ul,ol{padding-left:1.3rem} li{margin:.4rem 0}
+.bad{color:var(--bad);font-weight:600}.good{color:var(--good);font-weight:600}
+footer{border-top:1px solid var(--border);margin-top:4rem;padding-top:1.4rem;color:var(--muted);font-size:.9rem}
+</style>
+</head>
+<body>
+<nav>
+  <span class="brand"><a href="/">sqlsure</a></span>
+  <a href="/blog/">Blog</a>
+  <a href="https://github.com/sqlsure/sqlsure">GitHub</a>
+  <a href="https://pypi.org/project/sqlsure/">PyPI</a>
+</nav>
+<main>
+<h1>Your ontology is documentation until something enforces it</h1>
+<p class="meta">July 2026 · on ontology-grounded AI, and what grounding is missing</p>
+
+<p>The AI industry has converged on a diagnosis: agents hallucinate about
+your business because they don't know your world. And on a prescription:
+give them an <b>ontology</b> — a formal map of what exists (patients,
+orders, visits), what identifies each thing, and how things relate.
+Palantir built a platform around this idea. Snowflake, dbt, and Salesforce
+formed a standards body for it (OSI). The knowledge-graph community has
+said it for a decade.</p>
+
+<p>The prescription is right. But there's a gap between an ontology that
+<em>informs</em> and one that <em>governs</em>. Today, every one of these
+systems hands the map to the model as context — and hopes. Nothing checks
+the SQL that comes back against the map it was given. <b>An ontology
+nobody enforces is documentation.</b></p>
+
+<p>We build the enforcement half. Here's what happened when we pointed it
+at two real ontologies.</p>
+
+<h2>OSI: the spec's own examples, enforced</h2>
+
+<p>OSI — the Open Semantic Interchange, the vendor-neutral semantic-model
+format from the Snowflake/dbt/Salesforce initiative — declares exactly the
+facts a checker needs: what identifies an entity, and each relationship's
+multiplicity. Our <a
+href="https://github.com/sqlsure/sqlsure/blob/main/integrations/osi_loader.py">loader</a>
+reads both published spec shapes (the ontology style and the
+core-metadata style, including their TPC-DS example, where relationship
+cardinality is inferred from the declared keys). Against the spec's own
+example files, queries that violate the declared semantics — a count
+inflated by a one-to-many join, a join on an undeclared key — are
+rejected with fix hints; clean equivalents pass. Honest scope: this is
+demonstrated on the spec's published examples, not yet on production
+exports — if you have a real OSI file from an implementing platform, we
+want to run it.</p>
+
+<h2>OMOP: the clinical ontology, and a bug class that matters</h2>
+
+<p><a href="https://ohdsi.github.io/CommonDataModel/">OMOP CDM</a> is the
+ontology-shaped schema that hundreds of hospitals and research networks
+standardize clinical data on. Its structure is public and
+machine-readable: every primary key and foreign key is published as a
+spec CSV. Feeding that spec to sqlsure produces a rulebook with
+<b>39 tables, 94 join edges, and 53 flagged sensitive columns — zero
+human authoring</b> — plus a thin layer of clinical semantics the spec
+implies but SQL can't see: costs and drug quantities are summable; lab
+values are not.</p>
+
+<p>What it catches, on query shapes clinical researchers actually write:</p>
+
+<pre><code><span class="bad">✗ COUNT(person_id) after joining person to visit_occurrence</span>
+  counts VISITS, not patients — the cohort inflates with every
+  hospital visit. Fix: COUNT(DISTINCT person_id).
+  <span class="good">(the corrected query passes)</span>
+
+<span class="bad">✗ SUM(measurement.value_as_number)</span>
+  summing blood-pressure readings is never a valid statistic.
+  Hard error: value_as_number is non-additive.
+
+<span class="bad">✗ SELECT person_source_value ...</span>
+  the column that links de-identified research data back to a
+  human — policy violation before the query runs.</code></pre>
+
+<p>None of this required a semantic layer, a data team, or a config file.
+The ontology already said it all. It just needed something that
+listens. (Runnable: <a
+href="https://github.com/sqlsure/sqlsure/blob/main/integrations/omop_loader.py">integrations/omop_loader.py</a>.)</p>
+
+<h2>The general point</h2>
+
+<p>Every ontology system today — Foundry's object and link types, OSI's
+YAML, OMOP's spec, OWL's cardinality restrictions — declares the same
+three facts sqlsure enforces: <b>identity</b> (what one row means),
+<b>relationship shape</b> (what a join multiplies), and <b>value
+semantics</b> (what you may aggregate). The declarations exist. The
+queries ignore them freely. The fix is not a bigger map or a smarter
+model — it's a deterministic check at the moment of execution, reading
+declarations that already exist. We've now demonstrated the same pattern
+across dbt tests, MetricFlow semantic models, WrenAI MDL, OSI, live
+database catalogs, and the largest clinical ontology in the world.</p>
+
+<blockquote>Ontology-grounded agents are the right idea.
+<b>Grounding needs teeth.</b></blockquote>
+
+<p><a href="https://github.com/sqlsure/sqlsure">sqlsure is open source</a>
+(Apache-2.0) — a deterministic semantic gate for SQL with a CLI, an MCP
+server, an Agent Skill, and <a
+href="https://github.com/sqlsure/sqlsure/blob/main/docs/EVIDENCE.md">receipts
+for every claim</a>.</p>
+
+<pre><code>pip install sqlsure</code></pre>
+
+<footer>
+<p>Apache-2.0 · <a href="https://github.com/sqlsure/sqlsure">GitHub</a> ·
+<a href="https://pypi.org/project/sqlsure/">PyPI</a> · <a href="/">sqlsure.ai</a></p>
+</footer>
+</main>
+</body>
+</html>

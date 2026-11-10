@@ -41,6 +41,8 @@ Key facts for agents:
 
 ## Blog
 
+- [We told a benchmark its schema was wrong. It shipped the fix.](https://sqlsure.ai/blog/benchmark-shipped-the-fix/): BIRD's 2026 Mini-Dev release added the two foreign keys we reported; new annotations now match the shipped databases 104/104 across 11 databases
+
 - [Your ontology is documentation until something enforces it](https://sqlsure.ai/blog/enforcing-the-ontology/): OMOP CDM as a zero-authoring rulebook — 39 tables, 94 edges from the published spec; catches double-counted patients and summed lab values
 
 - [The compute bill of being wrong](https://sqlsure.ai/blog/compute-bill-of-being-wrong/): measured fan-out cost on real databases — up to 272× inflated results, 8,000× the row-work

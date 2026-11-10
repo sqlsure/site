@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>We told a benchmark its schema was wrong. It shipped the fix. — sqlsure</title>
+<meta name="description" content="In July we reported two foreign keys missing from BIRD's published schema. The 2026 Mini-Dev release added exactly those two — and the new annotations now match the shipped databases on all 11. What the closed loop means, and who should care.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✅</text></svg>">
+<link rel="canonical" href="https://sqlsure.ai/blog/benchmark-shipped-the-fix/">
+<style>
+:root{--bg:#ffffff;--fg:#111418;--muted:#5b6470;--accent:#0b6e4f;--accent2:#0b4f6e;--card:#f5f7f9;--border:#e3e7ec;--bad:#b42318;--good:#0b6e4f}
+@media(prefers-color-scheme:dark){:root{--bg:#0e1116;--fg:#e8ebee;--muted:#9aa4b0;--accent:#3ecf8e;--accent2:#5cb8e4;--card:#161b22;--border:#2a313a;--bad:#ff7b6e;--good:#3ecf8e}}
+*{box-sizing:border-box;margin:0}
+body{background:var(--bg);color:var(--fg);font:17px/1.7 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+main{max-width:42rem;margin:0 auto;padding:0 1.25rem 5rem}
+nav{display:flex;gap:1.4rem;align-items:baseline;padding:1.4rem 0;max-width:42rem;margin:0 auto;padding-left:1.25rem;padding-right:1.25rem}
+nav .brand{font-weight:750;font-size:1.1rem}
+nav a{color:var(--muted);text-decoration:none;font-size:.95rem}
+nav .brand a{color:var(--fg)}
+h1{font-size:1.9rem;line-height:1.2;letter-spacing:-.02em;margin:2rem 0 .4rem;font-weight:800}
+h2{font-size:1.3rem;margin:2.6rem 0 .6rem}
+h3{font-size:1.02rem;margin:1.6rem 0 .3rem}
+p{margin:.9rem 0}
+.meta{color:var(--muted);font-size:.9rem;margin-bottom:2rem}
+code,pre{font:.86em/1.55 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+pre{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:1rem;overflow-x:auto;margin:1rem 0}
+table{border-collapse:collapse;width:100%;margin:1rem 0;font-size:.93rem}
+td,th{border:1px solid var(--border);padding:.5rem .7rem;text-align:left}
+th{background:var(--card)}
+blockquote{border-left:3px solid var(--accent);padding:.2rem 0 .2rem 1.1rem;margin:1.4rem 0;color:var(--muted)}
+a{color:var(--accent2)}
+ul,ol{padding-left:1.3rem} li{margin:.4rem 0}
+.bad{color:var(--bad);font-weight:600}.good{color:var(--good);font-weight:600}
+footer{border-top:1px solid var(--border);margin-top:4rem;padding-top:1.4rem;color:var(--muted);font-size:.9rem}
+</style>
+</head>
+<body>
+<nav>
+  <span class="brand"><a href="/">sqlsure</a></span>
+  <a href="/blog/">Blog</a>
+  <a href="https://github.com/sqlsure/sqlsure">GitHub</a>
+  <a href="https://pypi.org/project/sqlsure/">PyPI</a>
+</nav>
+<main>
+<h1>We told a benchmark its schema was wrong. It shipped the fix.</h1>
+<p class="meta">November 2026 · a closed loop, and what it is evidence for</p>
+
+<p>In July we published <a href="/blog/bird-benchmark-wrong-gold/">an audit</a>
+of the answer keys behind BIRD and Spider — the benchmarks nearly every
+text-to-SQL model is graded on. Most of that post was about wrong gold
+answers. One finding was quieter and, it turns out, more consequential: in
+BIRD's published schema for the <code>european_football_2</code> database,
+two foreign keys that exist in the shipped SQLite file were missing from
+the annotations. We <a
+href="https://github.com/bird-bench/mini_dev/issues/37">filed it
+upstream</a>.</p>
+
+<p>The maintainers replied: <em>"We will review this issue and fix the
+missing foreign key annotations in the next patch."</em> Last month they
+shipped the <a
+href="https://huggingface.co/datasets/birdsql/bird_mini_dev">2026 Mini-Dev
+release</a> — corrected questions, evidence and gold SQL, a new
+machine-readable schema artifact, and an acknowledgements section that
+credits the community reporters who filed issues, this author among
+them.</p>
+
+<h2>Verifying the fix, mechanically</h2>
+
+<p>The interesting part isn't that they fixed it. It's that the fix is
+<em>checkable</em> — by the same mechanism that found the problem. We
+diffed foreign-key declarations three ways across all 11 dev databases:
+the old annotations, the new ones, and the databases themselves.</p>
+
+<table>
+<tr><th>source</th><th>foreign keys declared</th></tr>
+<tr><td>old <code>dev_tables.json</code> (2024)</td><td>102</td></tr>
+<tr><td>new <code>baseline_inference/schemas</code> (2026)</td><td class="good">104</td></tr>
+<tr><td>the shipped <code>.sqlite</code> files</td><td class="good">104</td></tr>
+</table>
+
+<p>The new annotations match the actual databases <b>exactly, on every one
+of the 11</b>. The two added edges are precisely the ones we reported —
+<code>match.country_id → country.id</code> and <code>match.league_id →
+league.id</code>. Nothing else moved.</p>
+
+<p>You can run this yourself in about five seconds. The checker is
+stdlib-only, read-only, and takes either published annotation format:</p>
+
+<pre><code>python verify_fk_annotations.py \
+  --db-dir dev_databases --annotations dev_tables.json
+
+european_football_2    annotated: 29   in db: 31   <span class="bad">missing: 2</span>
+  match.country_id -> country.id
+  match.league_id  -> league.id</code></pre>
+
+<p>Point it at the 2026 schemas and it prints <span class="good">"every
+foreign key declared by the databases is annotated."</span> (<a
+href="https://github.com/sqlsure/sqlsure/blob/main/benchmarks/verify_fk_annotations.py">source</a>;
+we've offered it upstream for the remaining splits.)</p>
+
+<h2>Why two missing edges mattered</h2>
+
+<p>Something we only appreciated after the fix landed. BIRD's baseline
+prompt template tells the model, in so many words, that the schema it is
+being given includes <em>"primary keys, foreign keys, and any relevant
+relationships or constraints."</em> So those two absent edges weren't just
+a metadata nit in a side file — they were part of what every
+baseline-evaluated model was told about the world. A model asked to join
+matches to leagues was working from a schema that said no such
+relationship exists.</p>
+
+<p>And the error propagates outward with a multiplier. Published schema
+annotations are consumed by prompt builders, by schema-linking modules, by
+retrieval over table metadata, by every paper that reports a number on this
+benchmark, and by tools (ours included) that treat declared keys as ground
+truth. One wrong row in a metadata file is read thousands of times.</p>
+
+<h2>What this is evidence for</h2>
+
+<h3>Benchmark metadata is code, and deserves CI</h3>
+<p>The defect wasn't carelessness; it came from an extraction edge case.
+SQLite lets you write <code>REFERENCES parent</code> without naming a
+column, meaning "the parent's primary key." A reader that only looks for
+explicit column lists silently drops those. It's exactly the kind of bug
+humans don't catch by reading — and a three-line check catches forever.
+Benchmarks ship their databases <em>and</em> their description of those
+databases; nothing but a script can keep the two honest.</p>
+
+<h3>Machine-checkable claims get fixed</h3>
+<p>We've made arguments to maintainers before. This one wasn't an argument.
+It was: here is a file, here is the database, here is the one-command diff
+between them. Nobody had to be persuaded, and nobody had to take our word.
+That's the real difference between a deterministic check and an opinion —
+not accuracy, <em>actionability</em>. A finding anyone can reproduce in
+five seconds gets shipped; a finding that requires trusting the finder gets
+discussed.</p>
+
+<h3>The cost asymmetry is the whole argument</h3>
+<p>Finding this took one pass of a checker over a corpus — no human review
+of 2,568 queries, no LLM judging each one, no tokens. Verifying the fix
+took one command. The class of problem is enormous and the cost of checking
+it is approximately zero. That ratio is why we think constraint checking
+belongs in the pipeline permanently rather than as an occasional audit.</p>
+
+<h2>Who should care about this</h2>
+
+<p>Different readers, different stakes:</p>
+
+<ul>
+<li><b>Benchmark maintainers.</b> If you publish databases alongside a
+schema description, you have the same exposure — BIRD's extraction bug is
+not BIRD-specific. The verifier is free, stdlib-only, and belongs in CI
+next to your other checks. (Spider, LiveSQLBench, and the newer agentic
+SQL benchmarks all ship metadata the same way.)</li>
+
+<li><b>Anyone publishing a leaderboard number.</b> Your score is a function
+of the schema the model was given. When that schema changes — as it just
+did — comparisons across releases are no longer apples to apples. Report
+which annotation release you evaluated against, the way you'd report a
+model version.</li>
+
+<li><b>Researchers building on these datasets.</b> If a paper's
+schema-linking or join-path reasoning was evaluated on the pre-fix
+annotations, two edges of the graph were missing from the input. Probably
+minor; worth knowing it's a variable at all.</li>
+
+<li><b>Data and analytics teams.</b> This is the part that generalizes
+hardest. Your warehouse has the same split-brain: the database declares one
+thing, the documentation and semantic layer declare another, and they drift
+silently. The consequence in a benchmark is a slightly wrong score. The
+consequence in a company is a dashboard that double-counts revenue because
+a join nobody declared turned out to be one-to-many. Same check, higher
+stakes.</li>
+
+<li><b>Teams shipping AI agents over SQL.</b> Agents inherit their
+metadata's mistakes with no ability to notice. An agent told "there is no
+relationship between matches and leagues" will either refuse a reasonable
+question or invent a join. Checking the metadata against the database is
+upstream of every prompt-engineering fix you might reach for.</li>
+
+<li><b>People who maintain anything open-source and get bug reports.</b>
+The thing that made this easy to act on was a reproduction, not a report.
+Worth copying in both directions.</li>
+</ul>
+
+<h2>What's still open</h2>
+
+<p>Honestly stated: this fix landed in Mini-Dev. The maintainers were
+explicit that the update focused there and that other splits come later,
+and the full <code>dev</code> and <code>train</code> distributions are
+unchanged. Our scan of the 9,428 train-split gold queries counts <b>788
+joins whose key pair matches no declared foreign key</b>, across 21
+databases, 8 of which declare no foreign keys at all. A good share of those
+are legitimate shared-key joins rather than missing annotations — which is
+exactly what a FK-from-database pass would separate out in one run. We've
+offered the script; it's their call and their timeline.</p>
+
+<blockquote>A benchmark is two artifacts that have to agree: the data, and
+the story the data tells about itself. Only one of them is usually
+tested.</blockquote>
+
+<p><a href="https://github.com/sqlsure/sqlsure">sqlsure is open source</a>
+(Apache-2.0) — a deterministic semantic gate for SQL, with <a
+href="https://github.com/sqlsure/sqlsure/blob/main/docs/EVIDENCE.md">a
+rerunnable measurement behind every claim</a>.</p>
+
+<pre><code>pip install sqlsure</code></pre>
+
+<footer>
+<p>Apache-2.0 · <a href="https://github.com/sqlsure/sqlsure">GitHub</a> ·
+<a href="https://pypi.org/project/sqlsure/">PyPI</a> · <a href="/">sqlsure.ai</a></p>
+</footer>
+</main>
+</body>
+</html>

@@ -7,6 +7,13 @@
 > self-repair. 0.1 ms per check, offline, never reads data, never
 > generates SQL. Apache-2.0.
 
+Who it is for: teams shipping text-to-SQL/BI products (library), agent
+builders querying a warehouse (MCP server or Agent Skill), dbt project
+owners (CI gate, rulebook from existing tests), and regulated/clinical
+data teams (OMOP rulebook from the published spec). Not for: queries that
+already route entirely through a semantic layer, schemas without
+one-to-many joins, or judging whether a query answers the question.
+
 Key facts for agents:
 - Install: `pip install sqlsure` (PyPI package: sqlsure)
 - MCP server: `python -m sqlsure.mcp_server --model model.json` (or

@@ -115,6 +115,33 @@ rejects with an exact fix:</p>
   amount will be double-counted.</span>
 <span class="verdict-good">fix: Pre-aggregate orders to [order_id] in a CTE before joining.</span></code></pre>
 
+<h2>Who this is for</h2>
+<div class="doors">
+  <div><b>You ship a product that writes SQL</b><p>Text-to-SQL, embedded
+  analytics, "chat with your data." One silently wrong number costs you the
+  user's trust in the entire product. Wrap your generator with
+  <code>check()</code>; rejections carry the fix, so it self-repairs.
+  → <em>the library</em></p></div>
+  <div><b>Your agents query the warehouse</b><p>An agent can't tell a correct
+  number from an inflated one, and neither can the person reading its answer.
+  Give it the inspector: one config line, 0.1&nbsp;ms per check, zero tokens.
+  → <em>the MCP server or Agent Skill</em></p></div>
+  <div><b>You own a dbt project</b><p>Your <code>unique</code> and
+  <code>relationships</code> tests already say which joins multiply rows.
+  sqlsure enforces them on every query — PRs, notebooks, agents — not just on
+  <code>dbt test</code> runs. No new config to write.
+  → <em>the CI gate</em></p></div>
+  <div><b>You work in regulated or clinical data</b><p>A fan-out here isn't an
+  embarrassing dashboard; it's an inflated patient cohort or an identifier in
+  an export. OMOP sites get a rulebook from the published spec with no
+  authoring at all. → <em>any of the three</em></p></div>
+</div>
+<p class="small"><b>Probably not for you if</b> every query already routes
+through a semantic layer (that garden is genuinely safe), your schema has no
+one-to-many joins to trip over, or what you need is whether a query
+<em>answers the question</em> — that's judgment, and we don't pretend to do
+it.</p>
+
 <h2>Where sqlsure sits</h2>
 <div class="flow">
   <div><b>Author</b>human PR or<br>AI agent</div>
